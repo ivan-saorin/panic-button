@@ -154,6 +154,7 @@ a{color:#F2EFE8}a:hover{color:#FFFFFF}
     'Cubist', 'Illuminated manuscript', 'Low poly', 'Watercolor', 'Biomechanical'
   ];
   var GO_URL = 'https://imsorrydave.si';
+  var API = 'https://panic-counter.REPLACE-ME.workers.dev';
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {
@@ -197,6 +198,17 @@ a{color:#F2EFE8}a:hover{color:#FFFFFF}
 
   var phase = 'idle', li = 0, ci = 0, t0 = 0, timers = [];
   var lineEls = [];
+  var pressNo = null; // promise → procedure number from the counter, or null
+
+  // Counted at press time; resolves long before the ~15 s of dialog is over.
+  function countPress() {
+    var opts = { method: 'POST' };
+    if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opts.signal = AbortSignal.timeout(8000);
+    return fetch(API + '/press', opts)
+      .then(function (r) { return r.json(); })
+      .then(function (j) { return Number.isInteger(j.n) && j.n > 0 ? j.n : null; })
+      .catch(function () { return null; });
+  }
 
   function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
   function clearTimers() { timers.forEach(clearTimeout); timers = []; }
@@ -287,14 +299,17 @@ a{color:#F2EFE8}a:hover{color:#FFFFFF}
       setPhase('decided');
       renderLines();
       later(function () {
-        location.assign(GO_URL);
-        later(reset, 1500);
+        pressNo.then(function (n) {
+          location.assign(n ? GO_URL + '/?n=' + n : GO_URL);
+          later(reset, 1500);
+        });
       }, 3000);
     }
   }
 
   function start() {
     if (phase !== 'idle') return;
+    pressNo = countPress();
     setPhase('pressed');
     later(function () {
       li = 0; ci = 0; t0 = Date.now();
