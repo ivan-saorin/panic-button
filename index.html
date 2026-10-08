@@ -310,7 +310,8 @@ a{color:#F2EFE8}a:hover{color:#FFFFFF}
       renderLines();
       later(function () {
         pressNo.then(function (n) {
-          location.assign(n ? GO_URL + '/?n=' + n : GO_URL);
+          // ?n is also the pass: imsorrydave.si turns away anyone arriving without it. 0 = pressed, counter unreachable.
+          location.assign(GO_URL + '/?n=' + (n || 0));
           later(reset, 1500);
         });
       }, 3000);
